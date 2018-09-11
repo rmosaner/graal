@@ -171,7 +171,7 @@ public interface NodeFactory {
     LLVMExpressionNode createStructureConstantNode(Type structureType, GetStackSpaceFactory getStackSpaceFactory, boolean packed, Type[] types, LLVMExpressionNode[] constants);
 
     LLVMExpressionNode createFunctionBlockNode(FrameSlot exceptionValueSlot, List<? extends LLVMStatementNode> basicBlockNodes, UniquesRegionAllocator uniquesRegionAllocator,
-                    FrameSlot[][] beforeBlockNuller, FrameSlot[][] afterBlockNuller, LLVMStatementNode[] copyArgumentsToFrame, LLVMSourceLocation location, FrameDescriptor frameDescriptor);
+                    FrameSlot[][] beforeBlockNuller, FrameSlot[][] afterBlockNuller, LLVMStatementNode[] copyArgumentsToFrame, LLVMSourceLocation location, FrameDescriptor frameDescriptor, FrameSlot loopSuccessorSlot);
 
     RootNode createFunctionStartNode(LLVMExpressionNode functionBodyNode, FrameDescriptor frameDescriptor, String name, String originalName,
                     int argumentCount, Source bcSource, LLVMSourceLocation location);
@@ -206,5 +206,14 @@ public interface NodeFactory {
 
     LLVMExpressionNode createStackSave();
 
+<<<<<<< HEAD
     LLVMExpressionNode createStackRestore(LLVMExpressionNode stackPointer);
+=======
+    LLVMObjectWriteNode createGlobalContainerWriteNode();
+
+    LLVMControlFlowNode createLoop(LLVMExpressionNode body, int[] successorIDs);
+
+    LLVMExpressionNode createLoopDispatchNode(FrameSlot exceptionValueSlot, List<? extends LLVMStatementNode> list, FrameSlot[][] beforeBlockNuller, FrameSlot[][] afterBlockNuller,
+                    int headerId, int[] indexMapping, int[] successors, FrameSlot successorSlot);
+>>>>>>> Integrate LLVMLoopNode into block dispatch.
 }
