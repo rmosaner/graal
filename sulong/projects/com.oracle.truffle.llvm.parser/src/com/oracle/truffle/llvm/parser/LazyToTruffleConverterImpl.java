@@ -74,6 +74,7 @@ import com.oracle.truffle.llvm.runtime.memory.LLVMStack.UniquesRegion;
 import com.oracle.truffle.llvm.runtime.nodes.api.LLVMControlFlowNode;
 import com.oracle.truffle.llvm.runtime.nodes.api.LLVMExpressionNode;
 import com.oracle.truffle.llvm.runtime.nodes.api.LLVMStatementNode;
+import com.oracle.truffle.llvm.runtime.nodes.base.LLVMBasicBlockNode;
 import com.oracle.truffle.llvm.runtime.options.SulongEngineOption;
 import com.oracle.truffle.llvm.runtime.types.PointerType;
 import com.oracle.truffle.llvm.runtime.types.PrimitiveType;
@@ -143,7 +144,7 @@ public class LazyToTruffleConverterImpl implements LazyToTruffleConverter {
                         liveness, notNullable, dbgInfoHandler, dataLayout, runtime.getNodeFactory());
         method.accept(visitor);
 
-        LLVMControlFlowGraph cfg = new LLVMControlFlowGraph(method.getBlocks().toArray(FunctionDefinition.EMPTY));
+        LLVMControlFlowGraph cfg = new LLVMControlFlowGraph(method.getBlocks().toArray(new InstructionBlock[0]));
         cfg.build();
 
         FrameSlot[][] nullableBeforeBlock = getNullableFrameSlots(liveness.getFrameSlots(), liveness.getNullableBeforeBlock(), notNullable);
@@ -160,7 +161,7 @@ public class LazyToTruffleConverterImpl implements LazyToTruffleConverter {
         }
 
         LLVMExpressionNode body = runtime.getNodeFactory().createFunctionBlockNode(frame.findFrameSlot(LLVMUserException.FRAME_SLOT_ID), nodes, uniquesRegion.build(), nullableBeforeBlock,
-                        nullableAfterBlock, copyArgumentsToFrameArray, location, frame);
+                        nullableAfterBlock, copyArgumentsToFrameArray, location, frame, loopSuccessorSlot);
 
         RootNode rootNode = runtime.getNodeFactory().createFunctionStartNode(body, frame, method.getName(), method.getSourceName(),
                         method.getParameters().size(), source, location);
@@ -186,12 +187,13 @@ public class LazyToTruffleConverterImpl implements LazyToTruffleConverter {
                 bodyNodes.add(resolvedNodes.get(block.id));
                 indexMapping[block.id] = i++;
             }
+
             int[] loopSuccessors = loop.getSuccessorIDs();
-            LLVMExpressionNode loopBody = runtime.getContext().getNodeFactory().createLoopDispatchNode(frame.findFrameSlot(LLVMUserException.FRAME_SLOT_ID), Collections.unmodifiableList(bodyNodes),
+            LLVMExpressionNode loopBody = runtime.getNodeFactory().createLoopDispatchNode(frame.findFrameSlot(LLVMUserException.FRAME_SLOT_ID), Collections.unmodifiableList(bodyNodes),
                             nullableBeforeBlock, nullableAfterBlock, headerId, indexMapping, loopSuccessors, loopSuccessorSlot);
-            LLVMControlFlowNode loopNode = runtime.getContext().getNodeFactory().createLoop(loopBody, loopSuccessors);
+            LLVMControlFlowNode loopNode = runtime.getNodeFactory().createLoop(loopBody, loopSuccessors);
             // replace header block with loop node
-            resolvedNodes.set(headerId, runtime.getContext().getNodeFactory().createBasicBlockNode(new LLVMStatementNode[0], loopNode, headerId, ("loopAt" + headerId)));
+            resolvedNodes.set(headerId, LLVMBasicBlockNode.createBasicBlockNode(runtime.getContext(), new LLVMStatementNode[0], loopNode, headerId, ("loopAt" + headerId)));
             // remove inner loops to reduce number of nodes
             for (CFGLoop innerLoop : loop.getInnerLoops()) {
                 resolvedNodes.set(innerLoop.getHeader().id, null);

@@ -27,12 +27,13 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.oracle.truffle.llvm.nodes.control;
+package com.oracle.truffle.llvm.runtime.nodes.control;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.ProbeNode;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RepeatingNode;
@@ -47,12 +48,8 @@ public abstract class LLVMLoopNode extends LLVMControlFlowNode {
         return new LLVMLoopNodeImpl(bodyNode, successorIDs, null);
     }
 
-    public LLVMLoopNode(LLVMSourceLocation source) {
-        super(source);
-    }
-
-    protected LLVMLoopNode(LLVMLoopNode delegate) {
-        super(delegate.getSourceLocation());
+    public LLVMLoopNode() {
+        super();
     }
 
     public abstract void executeLoop(VirtualFrame frame);
@@ -64,7 +61,7 @@ public abstract class LLVMLoopNode extends LLVMControlFlowNode {
         @CompilationFinal(dimensions = 1) private final int[] successors;
 
         private LLVMLoopNodeImpl(LLVMExpressionNode bodyNode, int[] successorIDs, LLVMSourceLocation sourceSection) {
-            super(sourceSection);
+            super();
             loop = Truffle.getRuntime().createLoopNode(new LLVMRepeatingNode(bodyNode));
             successors = successorIDs;
         }
@@ -94,7 +91,7 @@ public abstract class LLVMLoopNode extends LLVMControlFlowNode {
 
         @Override
         public void executeLoop(VirtualFrame frame) {
-            loop.executeLoop(frame);
+            loop.execute(frame);
         }
 
         @Override
@@ -104,6 +101,12 @@ public abstract class LLVMLoopNode extends LLVMControlFlowNode {
 
         @Override
         public LLVMStatementNode getPhiNode(int successorIndex) {
+            return null;
+        }
+
+        @Override
+        public WrapperNode createWrapper(ProbeNode probe) {
+            // TODO add implementation
             return null;
         }
     }

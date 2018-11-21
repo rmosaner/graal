@@ -52,27 +52,13 @@ import com.oracle.truffle.llvm.runtime.nodes.api.LLVMStatementNode;
 
 public final class LLVMDispatchBasicBlockNode extends LLVMExpressionNode {
 
-    private final FrameSlot exceptionValueSlot;<<<<<<<HEAD:sulong/projects/com.oracle.truffle.llvm.runtime/src/com/oracle/truffle/llvm/runtime/nodes/control/LLVMDispatchBasicBlockNode.java
-    @Children private final LLVMBasicBlockNode[] bodyNodes;
-    @CompilationFinal(dimensions = 2) private final FrameSlot[][] beforeBlockNuller;
-    @CompilationFinal(dimensions = 2) private final FrameSlot[][] afterBlockNuller;
-
-    public LLVMDispatchBasicBlockNode(FrameSlot exceptionValueSlot, LLVMBasicBlockNode[] bodyNodes, FrameSlot[][] beforeBlockNuller,
-                    FrameSlot[][] afterBlockNuller) {
-=======
-
-    private final LLVMSourceLocation source;
+    private final FrameSlot exceptionValueSlot;
     @Children private final LLVMStatementNode[] bodyNodes;
-    @Child private LLVMUniquesRegionAllocNode uniquesRegionAllocNode;
     @CompilationFinal(dimensions = 2) private final FrameSlot[][] beforeBlockNuller;
     @CompilationFinal(dimensions = 2) private final FrameSlot[][] afterBlockNuller;
-    @Children private final LLVMStatementNode[] copyArgumentsToFrame;
     @CompilationFinal private final FrameSlot loopSuccessorSlot;
 
-    public LLVMDispatchBasicBlockNode(FrameSlot exceptionValueSlot, LLVMBasicBlockNode[] bodyNodes, LLVMUniquesRegionAllocNode uniquesRegionAllocNode, FrameSlot[][] beforeBlockNuller,
-                    FrameSlot[][] afterBlockNuller, LLVMSourceLocation source,
-                    LLVMStatementNode[] copyArgumentsToFrame, FrameSlot loopSuccessorSlot) {
->>>>>>> Integrate LLVMLoopNode into block dispatch.:sulong/projects/com.oracle.truffle.llvm.nodes/src/com/oracle/truffle/llvm/nodes/control/LLVMDispatchBasicBlockNode.java
+    public LLVMDispatchBasicBlockNode(FrameSlot exceptionValueSlot, LLVMBasicBlockNode[] bodyNodes, FrameSlot[][] beforeBlockNuller, FrameSlot[][] afterBlockNuller, FrameSlot loopSuccessorSlot) {
         this.exceptionValueSlot = exceptionValueSlot;
         this.bodyNodes = bodyNodes;
         this.beforeBlockNuller = beforeBlockNuller;
@@ -96,7 +82,7 @@ public final class LLVMDispatchBasicBlockNode extends LLVMExpressionNode {
             bb.initialize();
 
             // the newly inserted block may have been instrumented
-            bb = bodyNodes[basicBlockIndex];
+            bb = (LLVMBasicBlockNode) bodyNodes[basicBlockIndex];
 
             // execute all statements
             bb.execute(frame);

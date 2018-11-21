@@ -27,7 +27,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.oracle.truffle.llvm.nodes.control;
+package com.oracle.truffle.llvm.runtime.nodes.control;
 
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
@@ -39,12 +39,12 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.ExplodeLoop.LoopExplosionKind;
-import com.oracle.truffle.llvm.nodes.base.LLVMBasicBlockNode;
-import com.oracle.truffle.llvm.nodes.func.LLVMInvokeNode;
 import com.oracle.truffle.llvm.runtime.except.LLVMUserException;
 import com.oracle.truffle.llvm.runtime.nodes.api.LLVMControlFlowNode;
 import com.oracle.truffle.llvm.runtime.nodes.api.LLVMExpressionNode;
 import com.oracle.truffle.llvm.runtime.nodes.api.LLVMStatementNode;
+import com.oracle.truffle.llvm.runtime.nodes.base.LLVMBasicBlockNode;
+import com.oracle.truffle.llvm.runtime.nodes.func.LLVMInvokeNode;
 
 public final class LLVMLoopDispatchNode extends LLVMExpressionNode {
     @CompilationFinal private final FrameSlot exceptionValueSlot;
@@ -87,11 +87,16 @@ public final class LLVMLoopDispatchNode extends LLVMExpressionNode {
         outer: while (true) {
             CompilerAsserts.partialEvaluationConstant(basicBlockIndex);
             LLVMBasicBlockNode bb = (LLVMBasicBlockNode) bodyNodes[indexMapping[basicBlockIndex]];
+
+            // lazily insert the basic block into the AST
+            bb = bb.initialize();
+
             // execute all statements
             bb.execute(frame);
+
             // execute control flow node, write phis, null stack frame slots, and dispatch to
             // the correct successor block
-            LLVMControlFlowNode controlFlowNode = bb.termInstruction;
+            LLVMControlFlowNode controlFlowNode = bb.getTerminatingInstruction();
             if (controlFlowNode instanceof LLVMConditionalBranchNode) {
                 LLVMConditionalBranchNode conditionalBranchNode = (LLVMConditionalBranchNode) controlFlowNode;
                 boolean condition = conditionalBranchNode.executeCondition(frame);
@@ -133,9 +138,7 @@ public final class LLVMLoopDispatchNode extends LLVMExpressionNode {
                 Object condition = switchNode.executeCondition(frame);
                 int[] successors = switchNode.getSuccessors();
                 for (int i = 0; i < successors.length - 1; i++) {
-                    Object caseValue = switchNode.getCase(i).executeGeneric(frame);
-                    assert caseValue.getClass() == condition.getClass() : "must be the same type - otherwise equals might wrongly return false";
-                    if (CompilerDirectives.injectBranchProbability(bb.getBranchProbability(i), condition.equals(caseValue))) {
+                    if (CompilerDirectives.injectBranchProbability(bb.getBranchProbability(i), switchNode.executeIsCase(frame, i, condition))) {
                         if (CompilerDirectives.inInterpreter()) {
                             bb.increaseBranchProbability(i);
                         }
@@ -153,6 +156,7 @@ public final class LLVMLoopDispatchNode extends LLVMExpressionNode {
                         continue outer;
                     }
                 }
+
                 int i = successors.length - 1;
                 if (CompilerDirectives.inInterpreter()) {
                     bb.increaseBranchProbability(i);
