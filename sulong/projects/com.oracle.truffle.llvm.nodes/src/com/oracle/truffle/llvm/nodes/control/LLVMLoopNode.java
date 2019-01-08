@@ -37,6 +37,7 @@ import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RepeatingNode;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import com.oracle.truffle.llvm.nodes.base.LLVMBasicBlockNode;
 import com.oracle.truffle.llvm.runtime.debug.scope.LLVMSourceLocation;
 import com.oracle.truffle.llvm.runtime.nodes.api.LLVMControlFlowNode;
 import com.oracle.truffle.llvm.runtime.nodes.api.LLVMExpressionNode;
@@ -59,14 +60,18 @@ public abstract class LLVMLoopNode extends LLVMControlFlowNode {
 
     public abstract int[] getSuccessors();
 
+    public abstract LLVMBasicBlockNode getHeader();
+
     private static final class LLVMLoopNodeImpl extends LLVMLoopNode {
         @Child private LoopNode loop;
         @CompilationFinal(dimensions = 1) private final int[] successors;
+        @CompilationFinal private final LLVMBasicBlockNode header;
 
         private LLVMLoopNodeImpl(LLVMExpressionNode bodyNode, int[] successorIDs, LLVMSourceLocation sourceSection) {
             super(sourceSection);
             loop = Truffle.getRuntime().createLoopNode(new LLVMRepeatingNode(bodyNode));
             successors = successorIDs;
+            header = ((LLVMLoopDispatchNode) bodyNode).getHeader();
         }
 
         @Override
@@ -105,6 +110,11 @@ public abstract class LLVMLoopNode extends LLVMControlFlowNode {
         @Override
         public LLVMStatementNode getPhiNode(int successorIndex) {
             return null;
+        }
+
+        @Override
+        public LLVMBasicBlockNode getHeader() {
+            return header;
         }
     }
 }

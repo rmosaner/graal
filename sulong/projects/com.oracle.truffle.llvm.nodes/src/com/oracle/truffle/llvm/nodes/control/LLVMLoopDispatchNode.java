@@ -68,6 +68,10 @@ public final class LLVMLoopDispatchNode extends LLVMExpressionNode {
         this.successorSlot = successorSlot;
     }
 
+    public LLVMBasicBlockNode getHeader() {
+        return (LLVMBasicBlockNode) bodyNodes[indexMapping[headerId]];
+    }
+
     @ExplodeLoop
     private boolean isInLoop(int bci) {
         for (int i : loopSuccessors) {
@@ -81,6 +85,9 @@ public final class LLVMLoopDispatchNode extends LLVMExpressionNode {
     @Override
     @ExplodeLoop(kind = LoopExplosionKind.MERGE_EXPLODE)
     public Object executeGeneric(VirtualFrame frame) {
+        if (!CompilerDirectives.inInterpreter())    // TODO remove
+            throw new RuntimeException("TestERROR");
+
         CompilerAsserts.compilationConstant(bodyNodes.length);
         int basicBlockIndex = headerId;
         // do-while loop fails at PE
